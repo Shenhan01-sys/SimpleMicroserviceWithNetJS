@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+}
+
+enum MaterialType {
+  VIDEO
+  PDF
+  QUIZ
+  DOCUMENT
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole @default(STUDENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  courses   Course[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model Course {
+  id           String   @id @default(uuid())
+  title        String
+  description  String?
+  instructorId String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  instructor  User       @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  materials   Material[]
+
+  @@index([instructorId])
+  @@map("courses")
+}
+
+model Material {
+  id        String       @id @default(uuid())
+  title     String
+  content   String       @db.Text
+  type      MaterialType @default(DOCUMENT)
+  order     Int          @default(0)
+  courseId  String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  course    Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@index([order])
+  @@map("materials")
+}
