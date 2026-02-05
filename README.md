@@ -544,7 +544,7 @@ Restart the application after updating `.env`.
 
 ### 📁 Project Structure
 
-```
+```text
 simplelms/
 ├─ prisma/
 │  └─ schema.prisma              # Database schema
