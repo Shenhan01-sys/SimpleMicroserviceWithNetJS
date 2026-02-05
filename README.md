@@ -542,61 +542,61 @@ Restart the application after updating `.env`.
 - Always run `npx prisma generate` after schema changes
 ```
 
-## 📁 Project Structure
+### 📁 Project Structure
 
 ```
 simplelms/
-├── prisma/
-│   └── schema.prisma          # Database schema
-├── src/
-│   ├── auth/                  # Authentication module
-│   │   ├── dto/
-│   │   ├── guards/            # JwtAuthGuard, PolicyGuard
-│   │   ├── decorators/        # @Roles, @CheckPolicy
-│   │   ├── strategies/        # JWT strategy
-│   │   ├── auth.controller.ts
-│   │   ├── auth.service.ts
-│   │   └── auth.module.ts
-│   ├── common/                # Shared utilities
-│   │   └── policies/          # Authorization policies
-│   │       ├── base.policy.ts
-│   │       ├── user.policy.ts
-│   │       ├── course.policy.ts
-│   │       ├── material.policy.ts
-│   │       └── index.ts
-│   ├── user/                  # User module
-│   │   ├── dto/
-│   │   ├── user.repository.ts
-│   │   ├── user.service.ts
-│   │   ├── user.controller.ts
-│   │   └── user.module.ts
-│   ├── course/                # Course module
-│   │   ├── dto/
-│   │   ├── course.repository.ts
-│   │   ├── course.service.ts
-│   │   ├── course.controller.ts
-│   │   └── course.module.ts
-│   ├── material/                # Material module (with file upload)
-│   │   ├── dto/
-│   │   ├── material.repository.ts
-│   │   ├── material.service.ts
-│   │   ├── material.controller.ts
-│   │   └── material.module.ts
-│   ├── storage/                # Supabase Storage module
-│   │   ├── storage.service.ts  # File upload/deletion service
-│   │   └── storage.module.ts
-│   ├── prisma/                 # Prisma module
-│   │   ├── prisma.service.ts
-│   │   └── prisma.module.ts
-│   ├── app.module.ts           # Root module
-│   └── main.ts                 # Application entry point
-├── test/
-│   └── app.e2e-spec.ts         # E2E tests
-├── supabase/
-│   └── migrations/             # Database migrations
-├── .env                        # Environment variables
-├── package.json
-└── README.md
+├─ prisma/
+│  └─ schema.prisma              # Database schema
+├─ src/
+│  ├─ auth/                      # Authentication module
+│  │  ├─ dto/
+│  │  ├─ guards/                 # JwtAuthGuard, PolicyGuard
+│  │  ├─ decorators/             # @Roles, @CheckPolicy
+│  │  ├─ strategies/             # JWT strategy
+│  │  ├─ auth.controller.ts
+│  │  ├─ auth.service.ts
+│  │  └─ auth.module.ts
+│  ├─ common/                    # Shared utilities
+│  │  └─ policies/               # Authorization policies
+│  │     ├─ base.policy.ts
+│  │     ├─ user.policy.ts
+│  │     ├─ course.policy.ts
+│  │     ├─ material.policy.ts
+│  │     └─ index.ts
+│  ├─ user/                      # User module
+│  │  ├─ dto/
+│  │  ├─ user.repository.ts
+│  │  ├─ user.service.ts
+│  │  ├─ user.controller.ts
+│  │  └─ user.module.ts
+│  ├─ course/                    # Course module
+│  │  ├─ dto/
+│  │  ├─ course.repository.ts
+│  │  ├─ course.service.ts
+│  │  ├─ course.controller.ts
+│  │  └─ course.module.ts
+│  ├─ material/                  # Material module (file upload)
+│  │  ├─ dto/
+│  │  ├─ material.repository.ts
+│  │  ├─ material.service.ts
+│  │  ├─ material.controller.ts
+│  │  └─ material.module.ts
+│  ├─ storage/                   # Supabase Storage module
+│  │  ├─ storage.service.ts      # File upload/deletion
+│  │  └─ storage.module.ts
+│  ├─ prisma/                    # Prisma module
+│  │  ├─ prisma.service.ts
+│  │  └─ prisma.module.ts
+│  ├─ app.module.ts              # Root module
+│  └─ main.ts                    # Application entry
+├─ test/
+│  └─ app.e2e-spec.ts            # E2E tests
+├─ supabase/
+│  └─ migrations/                # Database migrations
+├─ .env                          # Environment variables
+├─ package.json
+└─ README.md
 ```
 
 ## 🚀 Deployment
