@@ -291,10 +291,39 @@ DELETE /courses/:id        # Delete course (Admin or Instructor Owner)
 GET    /materials                  # Get all materials (Public)
 GET    /materials?courseId=<id>   # Filter by course (Public)
 GET    /materials/:id              # Get material by ID (Public)
-POST   /materials                  # Create material (Admin & Instructor)
-PATCH  /materials/:id              # Update material (Admin or Course Instructor)
-DELETE /materials/:id              # Delete material (Admin or Course Instructor)
+POST   /materials                  # Create text-only material (Admin & Instructor)
+POST   /materials/upload           # Upload file for material (Admin & Instructor)
+PATCH  /materials/:id              # Update material (Admin or Course Instruct`or)
+DELETE /materials/:id              # Delete material + file (Admin or Course Instructor)
 ```
+
+**File Upload Example:**
+
+```bash
+curl -X 'POST' \
+  'http://localhost:3000/materials/upload' \
+  -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+  -H 'Content-Type: multipart/form-data' \
+  -F 'file=@lecture.pdf;type=application/pdf' \
+  -F 'title=Week 1 Lecture Notes' \
+  -F 'courseId=9aae48c6-0412-4496-89cc-e692f2ad2fe5' \
+  -F 'type=PDF' \
+  -F 'order=1' \
+  -F 'content=Optional text description'
+```
+
+**Supported File Types:**
+- **VIDEO**: mp4, webm, mkv, mov (max 50MB)
+- **PDF**: application/pdf (max 50MB)
+- **DOCUMENT**: pdf, doc, docx, txt (max 50MB)
+- **QUIZ**: json, txt (max 50MB)
+
+**Material Fields:**
+- `content` and `fileUrl` are **both optional** - materials can have:
+  - Text only (`content` without file)
+  - File only (`fileUrl` without content)
+  - Both text and file
+  - Auto-deletion: files are deleted from Supabase Storage when material is deleted
 
 ### 🔐 Authorization Matrix
 
