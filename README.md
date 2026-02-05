@@ -1,6 +1,6 @@
 # SimpleLMS - Simple Learning Management System
 
-A modern, type-safe LMS microservice built with NestJS, PostgreSQL (Supabase), and Prisma ORM. Features JWT authentication, fine-grained RBAC with policy-based authorization, RESTful APIs, and comprehensive Swagger documentation.
+A modern, type-safe LMS microservice built with NestJS, PostgreSQL (Supabase), and Prisma ORM. Features JWT authentication, fine-grained RBAC with policy-based authorization, **file upload with Supabase Storage**, RESTful APIs, and comprehensive Swagger documentation.
 
 ## 🎯 Project Overview
 
@@ -10,6 +10,7 @@ SimpleLMS is a microservice demonstration showcasing best practices in backend d
 - **Fine-Grained Authorization** with resource ownership policies
 - **Course Management** with instructor ownership
 - **Learning Materials** with multiple content types (Video, PDF, Quiz, Document)
+- **File Upload** for materials (PDF, videos, documents) with Supabase Storage
 - **JWT Authentication** for secure API access
 - **Policy-Based Access Control** (users update own profiles, instructors manage own courses)
 - **Comprehensive Swagger/OpenAPI Documentation**
@@ -25,7 +26,8 @@ src/
 ├── auth/           # Authentication module (JWT + Guards + Policies)
 ├── user/           # User management module
 ├── course/         # Course management module
-├── material/       # Learning materials module
+├── material/       # Learning materials module (with file upload)
+├── storage/        # Supabase Storage service for file uploads
 ├── common/         # Shared policies and utilities
 │   └── policies/   # Authorization policies (UserPolicy, CoursePolicy, MaterialPolicy)
 └── prisma/         # Database module (Prisma)
@@ -68,10 +70,13 @@ Authorization Structure:
 |------------|---------|
 | **NestJS** | TypeScript framework for building scalable server-side applications |
 | **PostgreSQL** | Relational database (hosted on Supabase) |
-| **Supabase** | Backend-as-a-Service for PostgreSQL hosting with connection pooling |
+| **Supabase** | Backend-as-a-Service for PostgreSQL hosting, pooling, and storage |
+| **Supabase Storage** | Cloud file storage with CDN for learning materials |
 | **Prisma** | Modern ORM with type-safety and auto-completion |
 | **Passport-JWT** | Authentication middleware with JSON Web Tokens |
+| **Multer** | Middleware for handling multipart/form-data file uploads |
 | **class-validator** | DTO validation with decorators |
+| **class-transformer** | Transform objects for validation (e.g., string to number) |
 | **Swagger/OpenAPI** | Interactive API documentation |
 | **bcrypt** | Password hashing algorithm |
 | **Policy Guards** | Custom fine-grained authorization with resource ownership |
@@ -84,12 +89,13 @@ Authorization Structure:
 ├─────────────┤         ├──────────────┤         ├───────────────┤
 │ id          │────┐    │ id           │────┐    │ id            │
 │ email       │    │    │ title        │    │    │ title         │
-│ password    │    │    │ description  │    │    │ content       │
-│ name        │    │    │ instructorId │◄───┘    │ type          │
-│ role        │    └───►│ createdAt    │         │ order         │
-│ createdAt   │         │ updatedAt    │         │ courseId      │────┐
-│ updatedAt   │         └──────────────┘         │ createdAt     │    │
-└─────────────┘                │                 │ updatedAt     │    │
+│ password    │    │    │ description  │    │    │ content       │ (optional)
+│ name        │    │    │ instructorId │◄───┘    │ fileUrl       │ (optional)
+│ role        │    └───►│ createdAt    │         │ type          │
+│ createdAt   │         │ updatedAt    │         │ order         │
+│ updatedAt   │         └──────────────┘         │ courseId      │────┐
+└─────────────┘                │                 │ createdAt     │    │
+                               │                 │ updatedAt     │    │
                                │                 └───────────────┘    │
                                │                         ▲            │
                                └─────────────────────────┘            │
@@ -151,9 +157,16 @@ Authorization Structure:
    
    JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
    JWT_EXPIRES_IN=7d
+   
+   # Supabase Storage (for file uploads)
+   # Get these from: Supabase Dashboard → Project Settings → API
+   SUPABASE_URL="https://your-project.supabase.co"
+   SUPABASE_SERVICE_KEY="your-service-role-key-here"
    ```
    
-   > ⚠️ **Important**: The `?pgbouncer=true` parameter is required to disable prepared statements for Supabase's transaction pooler.
+   > ⚠️ **Important**: 
+   > - The `?pgbouncer=true` parameter is required to disable prepared statements for Supabase's transaction pooler.
+   > - Use the **service_role** key (SECRET) for `SUPABASE_SERVICE_KEY`, NOT the anon public key.
 
 5. **Setup database schema**
    
@@ -192,7 +205,30 @@ Authorization Structure:
    # Switch back to pooler connection with ?pgbouncer=true
    ```
 
-6. **Run the application**
+6. **Setup Supabase Storage (for file uploads)**
+   
+   a. Go to Supabase Dashboard → **Storage**
+   
+   b. Create a new bucket:
+      - Name: `materials`
+      - Public: **Yes** (allow public read access)
+   
+   c. (Optional) Configure bucket policies for security:
+      ```sql
+      -- Allow authenticated users to upload
+      CREATE POLICY "Allow uploads for authenticated users"
+      ON storage.objects FOR INSERT
+      TO authenticated
+      WITH CHECK (bucket_id = 'materials');
+      
+      -- Allow public read access
+      CREATE POLICY "Allow public read access"
+      ON storage.objects FOR SELECT
+      TO public
+      USING (bucket_id = 'materials');
+      ```
+
+7. **Run the application**
    ```bash
    # Development mode with hot-reload
    npm run start:dev
@@ -202,11 +238,11 @@ Authorization Structure:
    npm run start:prod
    ```
 
-7. **Access the application**
-   - **API Base URL**: `http://localhost:3000`
-   - **Swagger Documentation**: `http://localhost:3000/api` 📚
+8. **Access Swagger UI**
    
-8. **Test with Swagger**
+   Open your browser: **http://localhost:3000/api**
+   
+9. **Test with Swagger**
    - Register a new user via `/auth/register`
    - Copy the JWT token from response
    - Click "Authorize" button in Swagger UI
