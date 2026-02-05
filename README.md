@@ -1,15 +1,17 @@
 # SimpleLMS - Simple Learning Management System
 
-A modern, type-safe LMS microservice built with NestJS, PostgreSQL, and Prisma ORM. Features JWT authentication, RESTful APIs, and comprehensive Swagger documentation.
+A modern, type-safe LMS microservice built with NestJS, PostgreSQL (Supabase), and Prisma ORM. Features JWT authentication, fine-grained RBAC with policy-based authorization, RESTful APIs, and comprehensive Swagger documentation.
 
 ## 🎯 Project Overview
 
 SimpleLMS is a microservice demonstration showcasing best practices in backend development. It implements a complete learning management system with:
 
 - **User Management** with role-based access (Student, Instructor, Admin)
-- **Course Management** with instructor assignment
+- **Fine-Grained Authorization** with resource ownership policies
+- **Course Management** with instructor ownership
 - **Learning Materials** with multiple content types (Video, PDF, Quiz, Document)
 - **JWT Authentication** for secure API access
+- **Policy-Based Access Control** (users update own profiles, instructors manage own courses)
 - **Comprehensive Swagger/OpenAPI Documentation**
 
 ## 🏗️ Architecture & Design Patterns
@@ -20,10 +22,12 @@ The project follows NestJS's modular architecture pattern, where each feature is
 
 ```
 src/
-├── auth/           # Authentication module (JWT)
+├── auth/           # Authentication module (JWT + Guards + Policies)
 ├── user/           # User management module
 ├── course/         # Course management module
 ├── material/       # Learning materials module
+├── common/         # Shared policies and utilities
+│   └── policies/   # Authorization policies (UserPolicy, CoursePolicy, MaterialPolicy)
 └── prisma/         # Database module (Prisma)
 ```
 
@@ -42,8 +46,14 @@ Module Structure:
 ├── dto/            # Data Transfer Objects (validation)
 ├── *.repository.ts # Data access layer (Prisma queries)
 ├── *.service.ts    # Business logic layer
-├── *.controller.ts # HTTP layer (routes)
+├── *.controller.ts # HTTP layer (routes + authorization)
 └── *.module.ts     # Dependency injection
+
+Authorization Structure:
+├── guards/         # Authentication & authorization guards
+├── decorators/     # Custom decorators (@Roles, @CheckPolicy)
+├── strategies/     # Passport strategies (JWT)
+└── policies/       # Fine-grained authorization policies
 ```
 
 **Why Repository Pattern?**
@@ -57,12 +67,14 @@ Module Structure:
 | Technology | Purpose |
 |------------|---------|
 | **NestJS** | TypeScript framework for building scalable server-side applications |
-| **PostgreSQL** | Relational database (production-ready SQL database) |
+| **PostgreSQL** | Relational database (hosted on Supabase) |
+| **Supabase** | Backend-as-a-Service for PostgreSQL hosting with connection pooling |
 | **Prisma** | Modern ORM with type-safety and auto-completion |
 | **Passport-JWT** | Authentication middleware with JSON Web Tokens |
 | **class-validator** | DTO validation with decorators |
 | **Swagger/OpenAPI** | Interactive API documentation |
 | **bcrypt** | Password hashing algorithm |
+| **Policy Guards** | Custom fine-grained authorization with resource ownership |
 
 ## 📊 Database Schema
 
@@ -103,7 +115,8 @@ Module Structure:
 
 - **Node.js** (v18 or higher)
 - **npm** (v9 or higher)
-- **PostgreSQL** (v14 or higher)
+- **Supabase Account** (free tier available at [supabase.com](https://supabase.com))
+- **Supabase CLI** (optional, for migrations)
 
 ### Installation
 
@@ -117,33 +130,69 @@ Module Structure:
    npm install
    ```
 
-3. **Configure environment variables**
+3. **Setup Supabase Database**
+
+   a. Create a new project at [supabase.com](https://supabase.com)
    
-   Edit `.env` file with your PostgreSQL credentials:
+   b. Get your connection string from **Project Settings → Database**
+   
+   c. Use the **Transaction pooler** connection string (port 6543)
+
+4. **Configure environment variables**
+   
+   Edit `.env` file with your Supabase credentials:
    ```env
    NODE_ENV=development
    PORT=3000
    
-   # Update with your PostgreSQL credentials
-   DATABASE_URL=postgresql://YOUR_USER:YOUR_PASSWORD@localhost:5432/simplelms?schema=public
+   # Supabase PostgreSQL Connection (Transaction Pooler)
+   # IMPORTANT: Add ?pgbouncer=true for pooler compatibility
+   DATABASE_URL="postgresql://[USER]:[PASSWORD]@[HOST]:6543/postgres?pgbouncer=true"
    
    JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
    JWT_EXPIRES_IN=7d
    ```
+   
+   > ⚠️ **Important**: The `?pgbouncer=true` parameter is required to disable prepared statements for Supabase's transaction pooler.
 
-4. **Setup database**
+5. **Setup database schema**
+   
+   **Option A: Using Supabase CLI (Recommended)**
    ```bash
+   # Install Supabase CLI
+   npm install -g supabase
+   
+   # Login to Supabase
+   npx supabase login
+   
+   # Link your project
+   npx supabase link --project-ref YOUR_PROJECT_ID
+   
+   # Generate migration from Prisma schema
+   npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > supabase/migrations/init.sql
+   
+   # Push to Supabase
+   npx supabase db push
+   
+   # Generate Prisma Client
+   npx prisma generate
+   ```
+   
+   **Option B: Using Prisma Migrate (Direct Connection)**
+   ```bash
+   # Temporarily use direct connection (port 5432)
+   # Update DATABASE_URL in .env to direct connection
+   
    # Generate Prisma Client
    npx prisma generate
    
-   # Run database migrations
-   npx prisma migrate dev --name init
+   # Run migrations
+   npx prisma migrate deploy
    
-   # (Optional) Open Prisma Studio to view database
-   npx prisma studio
+   # Switch back to pooler connection with ?pgbouncer=true
    ```
 
-5. **Run the application**
+6. **Run the application**
    ```bash
    # Development mode with hot-reload
    npm run start:dev
@@ -153,9 +202,16 @@ Module Structure:
    npm run start:prod
    ```
 
-6. **Access the application**
+7. **Access the application**
    - **API Base URL**: `http://localhost:3000`
    - **Swagger Documentation**: `http://localhost:3000/api` 📚
+   
+8. **Test with Swagger**
+   - Register a new user via `/auth/register`
+   - Copy the JWT token from response
+   - Click "Authorize" button in Swagger UI
+   - Paste token (without "Bearer" prefix)
+   - Test protected endpoints
 
 ## 📖 API Documentation
 
@@ -175,36 +231,59 @@ POST /auth/register   # Register a new user
 POST /auth/login      # Login and receive JWT token
 ```
 
-#### Users (Protected)
+#### Users (Fine-Grained Authorization)
 ```
-GET    /users         # Get all users
-GET    /users/me      # Get current user profile
-GET    /users/:id     # Get user by ID
-POST   /users         # Create new user
-PATCH  /users/:id     # Update user
-DELETE /users/:id     # Delete user
+GET    /users         # Get all users (Admin & Instructor)
+GET    /users/me      # Get current user profile (Own)
+GET    /users/:id     # Get user by ID (Admin or Own)
+POST   /users         # Create new user (Admin Only)
+PATCH  /users/:id     # Update user (Admin or Own Profile)
+DELETE /users/:id     # Delete user (Admin Only, Cannot Delete Self)
 ```
 
-#### Courses
+#### Courses (Resource Ownership)
 ```
 GET    /courses            # Get all courses (Public)
 GET    /courses/:id        # Get course with materials (Public)
-POST   /courses            # Create course (Protected)
-PATCH  /courses/:id        # Update course (Protected)
-DELETE /courses/:id        # Delete course (Protected)
+POST   /courses            # Create course (Admin Only)
+PATCH  /courses/:id        # Update course (Admin or Instructor Owner)
+DELETE /courses/:id        # Delete course (Admin or Instructor Owner)
 ```
 
-#### Materials
+#### Materials (Course Ownership)
 ```
 GET    /materials                  # Get all materials (Public)
 GET    /materials?courseId=<id>   # Filter by course (Public)
 GET    /materials/:id              # Get material by ID (Public)
-POST   /materials                  # Create material (Protected)
-PATCH  /materials/:id              # Update material (Protected)
-DELETE /materials/:id              # Delete material (Protected)
+POST   /materials                  # Create material (Admin & Instructor)
+PATCH  /materials/:id              # Update material (Admin or Course Instructor)
+DELETE /materials/:id              # Delete material (Admin or Course Instructor)
 ```
 
-> **🔒 Protected**: Requires JWT token in Authorization header as Bearer token
+### 🔐 Authorization Matrix
+
+| Operation | Admin | Instructor | Student/User |
+|-----------|-------|------------|-------------|
+| **Users** |
+| Create user | ✅ | ❌ | ❌ |
+| View all users | ✅ | ✅ | ❌ |
+| View user | ✅ Any | ❌ | ✅ Own |
+| Update user | ✅ Any | ❌ | ✅ Own |
+| Delete user | ✅ Any (not self) | ❌ | ❌ |
+| **Courses** |
+| View courses | ✅ | ✅ | ✅ (Public) |
+| Create course | ✅ | ❌ | ❌ |
+| Update course | ✅ Any | ✅ Own | ❌ |
+| Delete course | ✅ Any | ✅ Own | ❌ |
+| **Materials** |
+| View materials | ✅ | ✅ | ✅ (Public) |
+| Create material | ✅ | ✅ | ❌ |
+| Update material | ✅ Any | ✅ Own course | ❌ |
+| Delete material | ✅ Any | ✅ Own course | ❌ |
+
+> **🔒 Protected**: Requires JWT token in Authorization header as Bearer token  
+> **✅ Own**: User can only access their own resources  
+> **✅ Own course**: Instructor can only manage materials for courses they teach
 
 ### Authentication Flow
 
@@ -264,12 +343,21 @@ Use **Postman** or **Swagger UI** (`/api`) to test endpoints manually.
    - Clear error messages
    - Email format, UUID validation, etc.
 
-### 3. **Security** (JWT + Passport)
+### 3. **Security** (JWT + Passport + Policies)
    - Stateless authentication
    - Protected routes with Guards
+   - **Fine-grained authorization with policies**
+   - **Resource ownership validation**
    - Password hashing with bcrypt
 
-### 4. **Documentation** (Swagger)
+### 4. **Policy-Based Access Control**
+   - **BasePolicy**: Common authorization helpers
+   - **UserPolicy**: Users update own profiles
+   - **CoursePolicy**: Instructors manage own courses
+   - **MaterialPolicy**: Instructors manage own course materials
+   - **PolicyGuard**: Dynamic resource loading and authorization
+
+### 5. **Documentation** (Swagger)
    - Auto-generated from decorators
    - Interactive testing interface
    - Clear request/response examples
@@ -299,6 +387,94 @@ npm run test:e2e       # Run E2E tests
 npx prisma studio      # Open database GUI
 npx prisma migrate dev # Create new migration
 npx prisma generate    # Generate Prisma Client
+
+# Supabase
+npx supabase login     # Login to Supabase
+npx supabase db push   # Push migrations to Supabase
+```
+
+## 🛡️ Authorization & Policies
+
+### How It Works
+
+SimpleLMS implements **fine-grained authorization** using custom policies:
+
+1. **PolicyGuard** - Intercepts requests and checks permissions
+2. **@CheckPolicy() decorator** - Declarative policy enforcement
+3. **Policy classes** - Define authorization rules
+
+### Example: Instructor Can Only Update Own Courses
+
+```typescript
+// course.policy.ts
+canUpdate(currentUser: User, course: Course): boolean {
+    return this.isAdmin(currentUser) || 
+           (this.isInstructor(currentUser) && course.instructorId === currentUser.id);
+}
+
+// course.controller.ts
+@Patch(':id')
+@UseGuards(JwtAuthGuard, PolicyGuard)
+@CheckPolicy('canUpdate', CoursePolicy)
+update(@Param('id') id: string, @Body() dto: UpdateCourseDto) {
+    return this.courseService.update(id, dto);
+}
+```
+
+**What happens:**
+1. Request comes in with JWT token
+2. `PolicyGuard` loads the course from database
+3. Checks if `currentUser.id === course.instructorId` OR user is admin
+4. Returns 403 if unauthorized
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+#### 1. **Error: "prepared statement s0 already exists"**
+
+**Cause**: Using Supabase transaction pooler (port 6543) without `pgbouncer=true`
+
+**Solution**: Add `?pgbouncer=true` to your DATABASE_URL:
+```env
+DATABASE_URL="postgresql://...@pooler.supabase.com:6543/postgres?pgbouncer=true"
+```
+
+Restart the application after updating `.env`.
+
+#### 2. **Error: "User not authenticated" on protected endpoints**
+
+**Cause**: Missing or invalid JWT token
+
+**Solution**:
+- Make sure you registered/logged in first
+- Copy the `access_token` from login response
+- In Swagger UI: Click "Authorize" and paste token (without "Bearer" prefix)
+- For Postman: Add header `Authorization: Bearer YOUR_TOKEN`
+
+#### 3. **403 Forbidden even with valid token**
+
+**Cause**: Insufficient permissions or trying to access others' resources
+
+**Solution**: Check authorization matrix in this README:
+- Students cannot create/update/delete courses
+- Instructors can only update/delete their own courses
+- Regular users can only update their own profile
+
+#### 4. **Database connection errors**
+
+**Solutions**:
+- Verify DATABASE_URL is correct in `.env`
+- Check if Supabase project is active
+- Ensure you're using the correct port (6543 for pooler, 5432 for direct)
+- Verify network/firewall allows connections
+
+#### 5. **Migration issues**
+
+**Solutions**:
+- For Supabase: Use `supabase db push` instead of `prisma migrate`
+- For direct connection: Run `npx prisma migrate deploy`
+- Always run `npx prisma generate` after schema changes
 ```
 
 ## 📁 Project Structure
@@ -310,11 +486,19 @@ simplelms/
 ├── src/
 │   ├── auth/                  # Authentication module
 │   │   ├── dto/
-│   │   ├── guards/
-│   │   ├── strategies/
+│   │   ├── guards/            # JwtAuthGuard, PolicyGuard
+│   │   ├── decorators/        # @Roles, @CheckPolicy
+│   │   ├── strategies/        # JWT strategy
 │   │   ├── auth.controller.ts
 │   │   ├── auth.service.ts
 │   │   └── auth.module.ts
+│   ├── common/                # Shared utilities
+│   │   └── policies/          # Authorization policies
+│   │       ├── base.policy.ts
+│   │       ├── user.policy.ts
+│   │       ├── course.policy.ts
+│   │       ├── material.policy.ts
+│   │       └── index.ts
 │   ├── user/                  # User module
 │   │   ├── dto/
 │   │   ├── user.repository.ts

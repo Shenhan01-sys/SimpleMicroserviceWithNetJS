@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { CourseModule } from './course/course.module';
 import { MaterialModule } from './material/material.module';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { MaterialModule } from './material/material.module';
       isGlobal: true,
     }),
     PrismaModule,
+    StorageModule,
     AuthModule,
     UserModule,
     CourseModule,

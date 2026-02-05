@@ -17,8 +17,8 @@ export class CreateCourseDto {
     description?: string;
 
     @ApiProperty({
-        example: '123e4567-e89b-12d3-a456-426614174000',
-        description: 'Instructor user ID'
+        example: '9f64ef96-878d-454d-bdfb-436cbd639631',
+        description: 'ID of the instructor assigned to this course'
     })
     @IsUUID()
     @IsNotEmpty()

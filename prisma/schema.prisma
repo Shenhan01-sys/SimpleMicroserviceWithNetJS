@@ -53,7 +53,8 @@ model Course {
 model Material {
   id        String       @id @default(uuid())
   title     String
-  content   String       @db.Text
+  content   String?      @db.Text  // Optional: text content
+  fileUrl   String?                // Optional: uploaded file URL
   type      MaterialType @default(DOCUMENT)
   order     Int          @default(0)
   courseId  String

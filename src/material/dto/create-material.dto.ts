@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsEnum, IsInt, IsUUID, Min } from 'class-validator';
+import { IsNotEmpty, IsString, IsEnum, IsInt, IsUUID, Min, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export enum MaterialType {
     VIDEO = 'VIDEO',
@@ -15,12 +16,13 @@ export class CreateMaterialDto {
     title: string;
 
     @ApiProperty({
-        example: 'Content about dependency injection in NestJS...',
-        description: 'Material content (text, URL, or embedded content)'
+        description: 'Text content of the material (optional, can be null if file is provided)',
+        example: 'Introduction to programming fundamentals...',
+        required: false,
     })
+    @IsOptional()
     @IsString()
-    @IsNotEmpty()
-    content: string;
+    content?: string;
 
     @ApiProperty({
         example: 'VIDEO',
@@ -37,6 +39,7 @@ export class CreateMaterialDto {
         minimum: 0,
         default: 0
     })
+    @Type(() => Number)  // Transform string to number for multipart form-data
     @IsInt()
     @Min(0)
     order: number;
