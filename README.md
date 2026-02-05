@@ -289,7 +289,7 @@ DELETE /courses/:id        # Delete course (Admin or Instructor Owner)
 #### Materials (Course Ownership)
 ```
 GET    /materials                  # Get all materials (Public)
-GET    /materials?courseId=<id>   # Filter by course (Public)
+GET    /materials?courseId=<id>    # Filter by course (Public)
 GET    /materials/:id              # Get material by ID (Public)
 POST   /materials                  # Create text-only material (Admin & Instructor)
 POST   /materials/upload           # Upload file for material (Admin & Instructor)
