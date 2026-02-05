@@ -576,19 +576,24 @@ simplelms/
 │   │   ├── course.service.ts
 │   │   ├── course.controller.ts
 │   │   └── course.module.ts
-│   ├── material/              # Material module
+│   ├── material/                # Material module (with file upload)
 │   │   ├── dto/
 │   │   ├── material.repository.ts
 │   │   ├── material.service.ts
 │   │   ├── material.controller.ts
 │   │   └── material.module.ts
-│   ├── prisma/                # Prisma module
+│   ├── storage/                # Supabase Storage module
+│   │   ├── storage.service.ts  # File upload/deletion service
+│   │   └── storage.module.ts
+│   ├── prisma/                 # Prisma module
 │   │   ├── prisma.service.ts
 │   │   └── prisma.module.ts
-│   ├── app.module.ts          # Root module
-│   └── main.ts                # Application entry point
+│   ├── app.module.ts           # Root module
+│   └── main.ts                 # Application entry point
 ├── test/
-│   └── app.e2e-spec.ts        # E2E tests
+│   └── app.e2e-spec.ts         # E2E tests
+├── supabase/
+│   └── migrations/             # Database migrations
 ├── .env                        # Environment variables
 ├── package.json
 └── README.md
